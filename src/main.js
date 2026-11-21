@@ -1,40 +1,60 @@
 
 import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import './style.css';
 
 const $ = id => document.getElementById(id);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x171019);
-scene.fog = new THREE.Fog(0x171019, 18, 55);
+scene.fog = new THREE.Fog(0x171019, 18, 65);
 
-const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100);
-camera.position.set(0, 6, 15);
-camera.lookAt(0, 1, 0);
+const camera = new THREE.PerspectiveCamera(
+  45,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  120
+);
+camera.position.set(0, 7, 17);
 
 const renderer = new THREE.WebGLRenderer({
   canvas: $('scene'),
   antialias: true
 });
-
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.07;
+controls.enablePan = true;
+controls.minDistance = 5;
+controls.maxDistance = 30;
+controls.maxPolarAngle = Math.PI * 0.49;
+controls.target.set(0, 1, 0);
+controls.update();
 
 scene.add(new THREE.HemisphereLight(0xcbbbd0, 0x29202a, 2));
 
 const moon = new THREE.DirectionalLight(0xffd9ad, 3);
-moon.position.set(-5, 10, 7);
+moon.position.set(-5, 12, 7);
 moon.castShadow = true;
+moon.shadow.mapSize.set(2048, 2048);
 scene.add(moon);
 
-const red = new THREE.PointLight(0xa52c43, 25, 18);
-red.position.set(4, 4, 1);
-scene.add(red);
+const redLight = new THREE.PointLight(0xa52c43, 25, 20);
+redLight.position.set(4, 4, 1);
+scene.add(redLight);
 
-function material(color, roughness = 0.8) {
-  return new THREE.MeshStandardMaterial({ color, roughness });
+function material(color, roughness = 0.8, metalness = 0) {
+  return new THREE.MeshStandardMaterial({
+    color,
+    roughness,
+    metalness
+  });
 }
 
 const ground = new THREE.Mesh(
@@ -45,32 +65,45 @@ ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
 
+// Sahne grupları
+const procession = new THREE.Group();
+scene.add(procession);
+
 // Saray
 const palace = new THREE.Group();
 scene.add(palace);
 
 const wall = new THREE.Mesh(
-  new THREE.BoxGeometry(20, 5, 0.7),
+  new THREE.BoxGeometry(22, 5, 0.7),
   material(0x392b34)
 );
-wall.position.set(0, 2.5, -7);
+wall.position.set(0, 2.5, -8);
 palace.add(wall);
 
-for (let x = -8; x <= 8; x += 2.5) {
+for (let x = -9; x <= 9; x += 2.5) {
   const column = new THREE.Mesh(
     new THREE.CylinderGeometry(0.23, 0.3, 4.8, 16),
     material(0x80614e)
   );
-  column.position.set(x, 2.4, -6.5);
+  column.position.set(x, 2.4, -7.5);
   palace.add(column);
 }
 
+// Yol
+const road = new THREE.Mesh(
+  new THREE.PlaneGeometry(12, 45),
+  material(0x393039)
+);
+road.rotation.x = -Math.PI / 2;
+road.position.set(0, 0.015, 8);
+scene.add(road);
+
 // Tabut
 const coffin = new THREE.Group();
-scene.add(coffin);
+procession.add(coffin);
 
 const wood = material(0x321a20, 0.35);
-const gold = material(0xb58a50, 0.3);
+const gold = material(0xb58a50, 0.3, 0.35);
 const velvet = material(0x741c31, 0.5);
 
 const base = new THREE.Mesh(
@@ -95,6 +128,7 @@ const top = new THREE.Mesh(
 top.position.y = 1.87;
 coffin.add(top);
 
+// Tabut süsleri
 for (let i = -2; i <= 2; i++) {
   const handle = new THREE.Mesh(
     new THREE.TorusGeometry(0.15, 0.04, 8, 16),
@@ -105,8 +139,16 @@ for (let i = -2; i <= 2; i++) {
   coffin.add(handle);
 }
 
+// Tabut üzerindeki dekoratif çerçeve
+const portraitFrame = new THREE.Mesh(
+  new THREE.BoxGeometry(0.72, 0.06, 0.88),
+  gold
+);
+portraitFrame.position.set(0, 1.98, 0);
+coffin.add(portraitFrame);
+
 // İnsan modeli
-function person(x, z, color, scale = 1) {
+function person(x, z, color, scale = 1, gender = 'male') {
   const root = new THREE.Group();
   root.position.set(x, 0, z);
   root.scale.setScalar(scale);
@@ -114,6 +156,7 @@ function person(x, z, color, scale = 1) {
   const coat = material(color);
   const skin = material(0xc58d70);
   const pants = material(0x17151a);
+  const hair = material(gender === 'female' ? 0x24151b : 0x171316);
 
   const body = new THREE.Mesh(
     new THREE.CapsuleGeometry(0.27, 0.65, 5, 10),
@@ -123,11 +166,19 @@ function person(x, z, color, scale = 1) {
   root.add(body);
 
   const head = new THREE.Mesh(
-    new THREE.SphereGeometry(0.22, 16, 12),
+    new THREE.SphereGeometry(0.22, 20, 16),
     skin
   );
   head.position.y = 2.05;
   root.add(head);
+
+  const hairMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.225, 16, 12),
+    hair
+  );
+  hairMesh.scale.set(1, 0.55, 1);
+  hairMesh.position.set(0, 2.17, -0.025);
+  root.add(hairMesh);
 
   const arms = [];
   const legs = [];
@@ -169,24 +220,25 @@ function person(x, z, color, scale = 1) {
   root.userData.arms = arms;
   root.userData.legs = legs;
   root.userData.phase = Math.random() * 6;
+  root.userData.gender = gender;
 
-  root.traverse(o => {
-    if (o.isMesh) {
-      o.castShadow = true;
-      o.receiveShadow = true;
+  root.traverse(object => {
+    if (object.isMesh) {
+      object.castShadow = true;
+      object.receiveShadow = true;
     }
   });
 
-  scene.add(root);
+  procession.add(root);
   return root;
 }
 
 // Dört tabut taşıyıcısı
 const carriers = [
-  person(-2, 0.3, 0x25202a, 0.9),
-  person(2, 0.3, 0x25202a, 0.9),
-  person(-2, -1, 0x30242c, 0.9),
-  person(2, -1, 0x30242c, 0.9)
+  person(-2, 0.45, 0x25202a, 0.9),
+  person(2, 0.45, 0x25202a, 0.9),
+  person(-2, -0.9, 0x30242c, 0.9),
+  person(2, -0.9, 0x30242c, 0.9)
 ];
 
 carriers.forEach(p => {
@@ -196,21 +248,26 @@ carriers.forEach(p => {
 // Kalabalık
 const mourners = [];
 
-for (let i = 0; i < 18; i++) {
+for (let i = 0; i < 22; i++) {
   const p = person(
     (Math.random() - 0.5) * 12,
-    -3 - Math.random() * 5,
+    -3 - Math.random() * 7,
     i % 2 ? 0x25202a : 0x3b2930,
-    0.65
+    0.65,
+    i % 3 === 0 ? 'female' : 'male'
   );
   mourners.push(p);
 }
 
 // Behlül ve Ezel
-const behlul = person(4, 0, 0x11131a, 1.05);
-const ezel = person(-7, 0, 0x253548, 1.05);
+const behlul = person(4, 0, 0x11131a, 1.05, 'male');
+const ezel = person(-7, 0, 0x253548, 1.05, 'male');
 
-let votes = { UYAN: new Set(), GEL: new Set() };
+let votes = {
+  UYAN: new Set(),
+  GEL: new Set()
+};
+
 let joined = new Set();
 let carrierQueue = [];
 let activeCarriers = new Set();
@@ -221,6 +278,7 @@ let seconds = 300;
 let soundOn = true;
 let speechBusy = false;
 let lastLine = 0;
+let movementPaused = false;
 
 const lines = [
   'Ölmedim ben! Kurtarın beni!',
@@ -259,6 +317,7 @@ function speak(message) {
   if (!soundOn || !('speechSynthesis' in window) || speechBusy) return;
 
   speechBusy = true;
+
   const utterance = new SpeechSynthesisUtterance(message);
   utterance.lang = 'tr-TR';
   utterance.rate = 0.88;
@@ -275,10 +334,13 @@ function toast(icon, title, detail) {
   box.querySelector('.gift-icon').textContent = icon;
   $('giftTitle').textContent = title;
   $('giftDetail').textContent = detail;
+
   box.classList.add('show');
 
   clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => box.classList.remove('show'), 3500);
+  toast.timer = setTimeout(() => {
+    box.classList.remove('show');
+  }, 3500);
 }
 
 function addCarrier(name) {
@@ -371,6 +433,11 @@ function command(raw, name = 'Misafir') {
     log(name, 'Cenaze alayı yeniden yürümeye başladı.');
   }
 
+  else if (c === 'KADIN' || c === 'ERKEK') {
+    log(name, c === 'KADIN' ? 'Kadın karakter istedi.' : 'Erkek karakter istedi.');
+    toast('👤', name, 'Karakter tercihi alındı.');
+  }
+
   else {
     log(name, 'Komut tanınmadı: ' + raw);
   }
@@ -393,12 +460,13 @@ function gift(type, name = 'Misafir') {
   command(item[2], name);
 }
 
-// Sohbet
-$('chatForm').addEventListener('submit', e => {
-  e.preventDefault();
+// Sohbet provası
+$('chatForm').addEventListener('submit', event => {
+  event.preventDefault();
 
   const value = $('chatInput').value;
   $('chatInput').value = '';
+
   command(value, 'Sen');
 });
 
@@ -418,12 +486,13 @@ $('soundToggle').addEventListener('click', () => {
   soundOn = !soundOn;
   $('soundToggle').textContent = soundOn ? '🔊 SES AÇIK' : '🔇 SES KAPALI';
 
-  if (!soundOn) speechSynthesis.cancel();
+  if (!soundOn && 'speechSynthesis' in window) {
+    speechSynthesis.cancel();
+    speechBusy = false;
+  }
 });
 
-let movementPaused = false;
-
-// Taşıyıcı değişimi
+// Taşıyıcı sırası
 setInterval(() => {
   if (activeCarriers.size > 0) {
     const first = activeCarriers.values().next().value;
@@ -453,7 +522,6 @@ setInterval(() => {
 
 // Animasyon
 const clock = new THREE.Clock();
-let processionX = 0;
 
 function animate() {
   requestAnimationFrame(animate);
@@ -461,10 +529,10 @@ function animate() {
   const t = clock.getElapsedTime();
 
   if (!movementPaused) {
-    processionX += 0.0018;
+    procession.position.x = Math.sin(t * 0.16) * 0.45;
+    procession.position.z = Math.sin(t * 0.10) * 0.25;
   }
 
-  coffin.position.x = Math.sin(t * 2) * 0.035;
   coffin.position.y = Math.sin(t * 2.5) * 0.025;
   coffin.rotation.z = Math.sin(t * 1.2) * 0.009;
 
@@ -488,6 +556,10 @@ function animate() {
     p.userData.legs.forEach((leg, j) => {
       leg.rotation.x = Math.sin(phase + j * Math.PI) * 0.28;
     });
+
+    p.userData.arms.forEach((arm, j) => {
+      arm.rotation.x = Math.sin(phase * 0.5 + j) * 0.08;
+    });
   });
 
   behlul.position.x = 4 + Math.sin(t * 0.5) * 0.15;
@@ -497,19 +569,19 @@ function animate() {
     leg.rotation.x = Math.sin(t * 3 + j * Math.PI) * 0.35;
   });
 
-  camera.position.x = Math.sin(t * 0.15) * 0.3;
-  camera.lookAt(0, 1.1, 0);
-
+  controls.update();
   renderer.render(scene, camera);
 }
 
 animate();
 
-addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight;
+// Ekran boyutu
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 });
 
 update();
