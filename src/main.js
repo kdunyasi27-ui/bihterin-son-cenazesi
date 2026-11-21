@@ -2,759 +2,514 @@
 import * as THREE from 'three';
 import './style.css';
 
-const canvas = document.querySelector('#scene');
+const $ = id => document.getElementById(id);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x171019);
+scene.fog = new THREE.Fog(0x171019, 18, 55);
+
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100);
+camera.position.set(0, 6, 15);
+camera.lookAt(0, 1, 0);
 
 const renderer = new THREE.WebGLRenderer({
-  canvas,
-  antialias: true,
-  alpha: false
+  canvas: $('scene'),
+  antialias: true
 });
 
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.15;
 
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x171019);
-scene.fog = new THREE.FogExp2(0x171019, 0.027);
+scene.add(new THREE.HemisphereLight(0xcbbbd0, 0x29202a, 2));
 
-const camera = new THREE.PerspectiveCamera(
-  42,
-  innerWidth / innerHeight,
-  0.1,
-  100
-);
-
-camera.position.set(0, 5.2, 13.5);
-camera.lookAt(0, 1.4, 0);
-
-scene.add(
-  new THREE.HemisphereLight(0xc8b5ce, 0x24151a, 2)
-);
-
-const moon = new THREE.DirectionalLight(0xffdfb0, 3.2);
-moon.position.set(-5, 10, 6);
+const moon = new THREE.DirectionalLight(0xffd9ad, 3);
+moon.position.set(-5, 10, 7);
 moon.castShadow = true;
-moon.shadow.mapSize.set(1024, 1024);
 scene.add(moon);
 
-const redLight = new THREE.PointLight(0x9d293d, 34, 18);
-redLight.position.set(4, 3, 1);
-scene.add(redLight);
+const red = new THREE.PointLight(0xa52c43, 25, 18);
+red.position.set(4, 4, 1);
+scene.add(red);
 
-const warmLight = new THREE.PointLight(0xffc77a, 28, 16);
-warmLight.position.set(-5, 3, -1);
-scene.add(warmLight);
+function material(color, roughness = 0.8) {
+  return new THREE.MeshStandardMaterial({ color, roughness });
+}
 
-const mat = (color, roughness = 0.8, metalness = 0) =>
-  new THREE.MeshStandardMaterial({
-    color,
-    roughness,
-    metalness
-  });
-
-// Zemin
 const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(80, 80),
-  mat(0x292029)
+  new THREE.PlaneGeometry(100, 100),
+  material(0x28202a)
 );
-
 ground.rotation.x = -Math.PI / 2;
-ground.position.y = -0.04;
 ground.receiveShadow = true;
 scene.add(ground);
-
-const floorGrid = new THREE.GridHelper(
-  40,
-  40,
-  0x4a343d,
-  0x34252e
-);
-
-floorGrid.position.y = -0.025;
-floorGrid.material.transparent = true;
-floorGrid.material.opacity = 0.22;
-scene.add(floorGrid);
 
 // Saray
 const palace = new THREE.Group();
 scene.add(palace);
 
 const wall = new THREE.Mesh(
-  new THREE.BoxGeometry(19, 5, 0.7),
-  mat(0x30242d)
+  new THREE.BoxGeometry(20, 5, 0.7),
+  material(0x392b34)
 );
-
 wall.position.set(0, 2.5, -7);
 palace.add(wall);
 
-for (let x = -8; x <= 8; x += 2.3) {
-  const col = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.22, 0.28, 4.7, 12),
-    mat(0x6b4d43)
+for (let x = -8; x <= 8; x += 2.5) {
+  const column = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.23, 0.3, 4.8, 16),
+    material(0x80614e)
   );
-
-  col.position.set(x, 2.35, -6.5);
-  palace.add(col);
-
-  const cap = new THREE.Mesh(
-    new THREE.BoxGeometry(0.8, 0.22, 0.9),
-    mat(0x9a7956)
-  );
-
-  cap.position.set(x, 4.7, -6.5);
-  palace.add(cap);
-
-  const glow = new THREE.PointLight(0xffa94d, 5, 5);
-  glow.position.set(x, 2.7, -5.9);
-  scene.add(glow);
+  column.position.set(x, 2.4, -6.5);
+  palace.add(column);
 }
 
 // Tabut
 const coffin = new THREE.Group();
 scene.add(coffin);
 
-const wood = mat(0x321a20, 0.34, 0.25);
-const trim = mat(0xb58a50, 0.3, 0.65);
-const velvet = mat(0x6b1727, 0.65);
+const wood = material(0x321a20, 0.35);
+const gold = material(0xb58a50, 0.3);
+const velvet = material(0x741c31, 0.5);
 
 const base = new THREE.Mesh(
-  new THREE.BoxGeometry(3.3, 0.55, 1.45),
+  new THREE.BoxGeometry(3.2, 0.55, 1.35),
   wood
 );
-
 base.position.y = 1.35;
 base.castShadow = true;
 coffin.add(base);
 
 const lid = new THREE.Mesh(
-  new THREE.BoxGeometry(3.38, 0.22, 1.52),
-  trim
+  new THREE.BoxGeometry(3.3, 0.2, 1.42),
+  gold
 );
-
-lid.position.y = 1.76;
-lid.castShadow = true;
+lid.position.y = 1.72;
 coffin.add(lid);
 
-const lidTop = new THREE.Mesh(
-  new THREE.BoxGeometry(3.05, 0.12, 1.28),
+const top = new THREE.Mesh(
+  new THREE.BoxGeometry(3.05, 0.1, 1.2),
   velvet
 );
+top.position.y = 1.87;
+coffin.add(top);
 
-lidTop.position.y = 1.91;
-coffin.add(lidTop);
-
-// Tabut kulpları
-for (const x of [-1.3, -0.65, 0, 0.65, 1.3]) {
+for (let i = -2; i <= 2; i++) {
   const handle = new THREE.Mesh(
-    new THREE.TorusGeometry(0.16, 0.045, 8, 16, Math.PI),
-    trim
+    new THREE.TorusGeometry(0.15, 0.04, 8, 16),
+    gold
   );
-
+  handle.position.set(i * 0.6, 1.35, 0.72);
   handle.rotation.x = Math.PI / 2;
-  handle.position.set(x, 1.35, 0.77);
   coffin.add(handle);
 }
 
-// Tabut üzerindeki güller
-const roseMat = mat(0x9e2038, 0.5);
-const leafMat = mat(0x30452e);
+// İnsan modeli
+function person(x, z, color, scale = 1) {
+  const root = new THREE.Group();
+  root.position.set(x, 0, z);
+  root.scale.setScalar(scale);
 
-for (let i = 0; i < 9; i++) {
-  const x = (Math.random() - 0.5) * 2.4;
-  const z = (Math.random() - 0.5) * 0.85;
+  const coat = material(color);
+  const skin = material(0xc58d70);
+  const pants = material(0x17151a);
 
-  const rose = new THREE.Mesh(
-    new THREE.SphereGeometry(0.12, 10, 8),
-    roseMat
-  );
-
-  rose.scale.set(1, 0.65, 1);
-  rose.position.set(x, 2.02, z);
-  coffin.add(rose);
-
-  const leaf = new THREE.Mesh(
-    new THREE.SphereGeometry(0.07, 8, 6),
-    leafMat
-  );
-
-  leaf.scale.set(1, 0.3, 2);
-  leaf.position.set(x + 0.12, 1.99, z + 0.1);
-  coffin.add(leaf);
-}
-
-// Basit 3D karakter oluşturucu
-function makePerson(x, z, coatColor, scale = 1) {
-  const g = new THREE.Group();
-
-  g.position.set(x, 0, z);
-  g.scale.setScalar(scale);
-
-  const coat = mat(coatColor);
-  const skin = mat(0xc58d70);
-  const pants = mat(0x17151a);
-  const shoe = mat(0x09090b);
-  const hair = mat(0x171116);
-
-  const torso = new THREE.Mesh(
-    new THREE.CapsuleGeometry(0.27, 0.65, 5, 9),
+  const body = new THREE.Mesh(
+    new THREE.CapsuleGeometry(0.27, 0.65, 5, 10),
     coat
   );
-
-  torso.position.y = 1.35;
-  torso.castShadow = true;
-  g.add(torso);
+  body.position.y = 1.35;
+  root.add(body);
 
   const head = new THREE.Mesh(
-    new THREE.SphereGeometry(0.22, 12, 10),
+    new THREE.SphereGeometry(0.22, 16, 12),
     skin
   );
-
   head.position.y = 2.05;
-  head.castShadow = true;
-  g.add(head);
+  root.add(head);
 
-  const haircap = new THREE.Mesh(
-    new THREE.SphereGeometry(
-      0.225,
-      12,
-      8,
-      0,
-      Math.PI * 2,
-      0,
-      Math.PI / 2
-    ),
-    hair
-  );
-
-  haircap.position.y = 2.1;
-  g.add(haircap);
-
-  const limbs = [];
+  const arms = [];
+  const legs = [];
 
   for (const side of [-1, 1]) {
     const arm = new THREE.Group();
-    arm.position.set(side * 0.29, 1.65, 0);
-    g.add(arm);
+    arm.position.set(side * 0.3, 1.65, 0);
 
-    const upper = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.09, 0.43, 4, 7),
+    const upperArm = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.09, 0.42, 4, 8),
       coat
     );
-
-    upper.position.y = -0.27;
-    arm.add(upper);
-
-    const hand = new THREE.Mesh(
-      new THREE.SphereGeometry(0.09, 8, 8),
-      skin
-    );
-
-    hand.position.y = -0.55;
-    arm.add(hand);
-
-    limbs.push(arm);
+    upperArm.position.y = -0.25;
+    arm.add(upperArm);
+    root.add(arm);
+    arms.push(arm);
 
     const leg = new THREE.Group();
     leg.position.set(side * 0.14, 0.95, 0);
-    g.add(leg);
 
     const thigh = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.11, 0.48, 4, 7),
+      new THREE.CapsuleGeometry(0.11, 0.45, 4, 8),
       pants
     );
-
     thigh.position.y = -0.27;
     leg.add(thigh);
 
     const foot = new THREE.Mesh(
       new THREE.BoxGeometry(0.18, 0.12, 0.34),
-      shoe
+      pants
     );
-
-    foot.position.set(0, -0.56, 0.1);
+    foot.position.set(0, -0.53, 0.1);
     leg.add(foot);
 
-    limbs.push(leg);
+    root.add(leg);
+    legs.push(leg);
   }
 
-  g.userData.limbs = limbs;
-  g.userData.phase = Math.random() * Math.PI * 2;
+  root.userData.arms = arms;
+  root.userData.legs = legs;
+  root.userData.phase = Math.random() * 6;
 
-  g.traverse(o => {
+  root.traverse(o => {
     if (o.isMesh) {
       o.castShadow = true;
       o.receiveShadow = true;
     }
   });
 
-  scene.add(g);
-  return g;
+  scene.add(root);
+  return root;
 }
 
-// Tabut taşıyıcıları
+// Dört tabut taşıyıcısı
 const carriers = [
-  makePerson(-2.2, 0.15, 0x211d26, 0.92),
-  makePerson(2.2, 0.15, 0x211d26, 0.92),
-  makePerson(-2.2, -0.95, 0x29212a, 0.92),
-  makePerson(2.2, -0.95, 0x29212a, 0.92)
+  person(-2, 0.3, 0x25202a, 0.9),
+  person(2, 0.3, 0x25202a, 0.9),
+  person(-2, -1, 0x30242c, 0.9),
+  person(2, -1, 0x30242c, 0.9)
 ];
 
-carriers[0].position.set(-2.05, 0, 0.25);
-carriers[1].position.set(2.05, 0, 0.25);
-carriers[2].position.set(-2.05, 0, -1.05);
-carriers[3].position.set(2.05, 0, -1.05);
+carriers.forEach(p => {
+  p.rotation.y = Math.PI;
+});
 
-carriers.forEach(p => p.rotation.y = Math.PI);
-
-// Cenaze kalabalığı
+// Kalabalık
 const mourners = [];
 
-for (let i = 0; i < 13; i++) {
-  const angle = (i / 13) * Math.PI * 2;
-  const radius = 4 + (i % 3) * 0.48;
-
-  const p = makePerson(
-    Math.cos(angle) * radius,
-    Math.sin(angle) * radius - 0.4,
-    i % 3 === 0 ? 0x34252b : 0x17171d,
-    0.7 + Math.random() * 0.12
+for (let i = 0; i < 18; i++) {
+  const p = person(
+    (Math.random() - 0.5) * 12,
+    -3 - Math.random() * 5,
+    i % 2 ? 0x25202a : 0x3b2930,
+    0.65
   );
-
-  p.rotation.y = Math.atan2(
-    -p.position.x,
-    -p.position.z
-  );
-
   mourners.push(p);
 }
 
 // Behlül ve Ezel
-const behlul = makePerson(3.6, -0.1, 0x17151a, 1.05);
-behlul.rotation.y = -Math.PI / 2;
+const behlul = person(4, 0, 0x11131a, 1.05);
+const ezel = person(-7, 0, 0x253548, 1.05);
 
-const ezel = makePerson(-5.8, 1.1, 0x202a36, 1.08);
-ezel.rotation.y = Math.PI / 2;
-
-// Fenerler
-for (let x = -6; x <= 6; x += 3) {
-  const pole = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.035, 0.05, 2.2, 8),
-    trim
-  );
-
-  pole.position.set(x, 0.95, 2.7);
-  scene.add(pole);
-
-  const lamp = new THREE.Mesh(
-    new THREE.SphereGeometry(0.14, 10, 8),
-    mat(0xffc16c, 0.2)
-  );
-
-  lamp.position.set(x, 2.1, 2.7);
-  scene.add(lamp);
-
-  const light = new THREE.PointLight(0xffa94d, 7, 5);
-  light.position.copy(lamp.position);
-  scene.add(light);
-}
-
-// Oyun verileri
-let uyan = 0;
-let gel = 0;
-let attendees = 0;
-let carriersCount = 0;
+let votes = { UYAN: new Set(), GEL: new Set() };
+let joined = new Set();
+let carrierQueue = [];
+let activeCarriers = new Set();
+let crying = 0;
+let prayers = 0;
+let protests = 0;
 let seconds = 300;
 let soundOn = true;
+let speechBusy = false;
 let lastLine = 0;
 
-const $ = id => document.getElementById(id);
+const lines = [
+  'Ölmedim ben! Kurtarın beni!',
+  'Behlül! Beni burada bırakma!',
+  'Sesimi duyan yok mu?',
+  'Tabutu açın! Ne olur!'
+];
 
-// Güvenli sohbet yazdırma
-function log(name, msg) {
+function update() {
+  $('uyanCount').textContent = votes.UYAN.size;
+  $('gelCount').textContent = votes.GEL.size;
+  $('attendeeCount').textContent = joined.size;
+  $('carrierCount').textContent = `${activeCarriers.size}/4`;
+}
+
+function log(name, message) {
   const p = document.createElement('p');
   const b = document.createElement('b');
 
   b.textContent = name + ': ';
-  p.appendChild(b);
-  p.appendChild(document.createTextNode(msg));
+  p.append(b, document.createTextNode(message));
 
   $('chatLog').appendChild(p);
   $('chatLog').scrollTop = $('chatLog').scrollHeight;
 
-  while ($('chatLog').children.length > 18) {
+  while ($('chatLog').children.length > 20) {
     $('chatLog').firstChild.remove();
   }
 }
 
-function subtitle(text) {
-  $('subtitle').textContent = text;
+function subtitle(message) {
+  $('subtitle').textContent = message;
 }
 
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
-  }[c]));
+function speak(message) {
+  if (!soundOn || !('speechSynthesis' in window) || speechBusy) return;
+
+  speechBusy = true;
+  const utterance = new SpeechSynthesisUtterance(message);
+  utterance.lang = 'tr-TR';
+  utterance.rate = 0.88;
+  utterance.pitch = 0.95;
+
+  utterance.onend = () => speechBusy = false;
+  utterance.onerror = () => speechBusy = false;
+
+  speechSynthesis.speak(utterance);
 }
 
-// Türkçe tarayıcı seslendirmesi
-function speak(text) {
-  if (!soundOn || !('speechSynthesis' in window)) return;
-
-  window.speechSynthesis.cancel();
-
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'tr-TR';
-  u.rate = 0.94;
-  u.pitch = 1;
-  u.volume = 0.95;
-
-  const voices = speechSynthesis.getVoices();
-  const tr = voices.find(v =>
-    v.lang.toLowerCase().startsWith('tr')
-  );
-
-  if (tr) u.voice = tr;
-
-  speechSynthesis.speak(u);
-}
-
-// Basit ses efektleri
-function sound(freq = 180, duration = 0.16, type = 'sine', volume = 0.12) {
-  if (!soundOn) return;
-
-  try {
-    const ctx = sound.ctx ||
-      (sound.ctx = new (
-        window.AudioContext || window.webkitAudioContext
-      )());
-
-    const oscillator = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    oscillator.type = type;
-    oscillator.frequency.value = freq;
-
-    gain.gain.setValueAtTime(volume, ctx.currentTime);
-
-    gain.gain.exponentialRampToValueAtTime(
-      0.001,
-      ctx.currentTime + duration
-    );
-
-    oscillator.connect(gain);
-    gain.connect(ctx.destination);
-
-    oscillator.start();
-    oscillator.stop(ctx.currentTime + duration);
-  } catch (error) {
-    console.warn('Ses başlatılamadı:', error);
-  }
-}
-
-// Hediye bildirimi
 function toast(icon, title, detail) {
-  $('giftToast').querySelector('.gift-icon').textContent = icon;
+  const box = $('giftToast');
+  box.querySelector('.gift-icon').textContent = icon;
   $('giftTitle').textContent = title;
   $('giftDetail').textContent = detail;
+  box.classList.add('show');
 
-  $('giftToast').classList.add('show');
-
-  setTimeout(() => {
-    $('giftToast').classList.remove('show');
-  }, 3500);
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => box.classList.remove('show'), 3500);
 }
 
-function update() {
-  $('uyanCount').textContent = uyan;
-  $('gelCount').textContent = gel;
-  $('attendeeCount').textContent = attendees;
-  $('carrierCount').textContent = `${carriersCount}/4`;
-}
-
-// Sohbet komutları
-function command(raw, name = 'Misafir') {
-  const c = raw.trim().toLocaleUpperCase('tr-TR');
-
-  if (!c) return;
-
-  if (c === 'KATIL') {
-    attendees++;
-
-    log(name, 'Cenazeye katıldı.');
-
-    toast(
-      '🕯️',
-      `${name} CENAZEYE KATILDI`,
-      'Kalabalığa yeni bir kişi eklendi.'
-    );
-
-    subtitle(`${name} cenazeye katıldı.`);
-    sound(480, 0.12, 'triangle');
-  }
-
-  else if (c === 'TASIMA') {
-    if (carriersCount < 4) {
-      carriersCount++;
-
-      log(name, 'Tabut taşıma sırasına girdi.');
-
-      toast(
-        '⚰️',
-        `${name} TAŞIMA SIRASINDA`,
-        'Tabut taşıma ekibine katıldı.'
-      );
-    } else {
-      log(name, 'Taşıma sırasına alındı.');
-
-      toast(
-        '⚰️',
-        'TAŞIMA SIRASI DOLU',
-        'Sıradaki taşıyıcı bekliyor.'
-      );
-    }
-  }
-
-  else if (c === 'DUA') {
-    log(name, 'Bihter için dua ediyor.');
-    subtitle(`${name}: Bihter için dua ediyor...`);
-    sound(330, 0.3, 'sine', 0.08);
-  }
-
-  else if (c === 'UYAN') {
-    uyan++;
-    log(name, 'UYAN oyu verdi!');
-    subtitle('Seyirciler UYAN diye bağırıyor!');
-    sound(240, 0.14, 'square');
-  }
-
-  else if (c === 'GEL') {
-    gel++;
-    log(name, 'GEL oyu verdi!');
-    subtitle('Seyirciler EZEL GEL diye bağırıyor!');
-    sound(420, 0.14, 'triangle');
-  }
-
-  else if (c === 'YÜRÜ') {
-    log(name, 'Cenaze alayı hızlandı.');
-  }
-
-  else if (c === 'DUR') {
-    log(name, 'Cenazeyi durdurdu.');
-  }
-
-  else {
-    log(name, `Komut tanınmadı: ${raw}`);
+function addCarrier(name) {
+  if (activeCarriers.size < 4) {
+    activeCarriers.add(name);
+    log(name, 'Tabut taşıyıcılarına katıldı.');
+  } else if (!carrierQueue.includes(name)) {
+    carrierQueue.push(name);
+    log(name, 'Taşıyıcı sırasına alındı.');
   }
 
   update();
 }
 
-// Hediye provası
-function gift(type, name = 'Misafir') {
-  const map = {
-    Rose: [
-      '🌹',
-      'ROSE GÖNDERİLDİ',
-      'Cenazeye bir kişi katıldı.',
-      'Biri beni duydu! Ne olur kurtarın beni!'
-    ],
+function nextCarrier() {
+  if (activeCarriers.size >= 4 || carrierQueue.length === 0) return;
 
-    Heart: [
-      '❤️',
-      'KALP GÖNDERİLDİ',
-      'Bihter için dua ediliyor.',
-      'Teşekkür ederim! Sesimi duyan var!'
-    ],
-
-    Gift: [
-      '🎁',
-      'HEDİYE GÖNDERİLDİ',
-      'Tabut taşıma sırası açıldı.',
-      'Tabutu açın! Lütfen!'
-    ],
-
-    Mini: [
-      '🐱',
-      'MİNİ HEDİYE',
-      'Behlül protesto ediliyor.',
-      'Behlül! Beni burada bırakma!'
-    ]
-  };
-
-  const m = map[type] || map.Rose;
-
-  toast(
-    m[0],
-    `${name}: ${m[1]}`,
-    m[2]
-  );
-
-  log(name, `${type} hediyesi gönderdi.`);
-
-  speak(`${name} ${type} hediyesi gönderdi. ${m[2]}`);
-
-  subtitle(`BİHTER: ${m[3]}`);
-
-  if (type === 'Rose') {
-    command('KATIL', name);
-  }
-
-  if (type === 'Heart') {
-    command('DUA', name);
-  }
-
-  if (type === 'Gift') {
-    command('TASIMA', name);
-  }
-
-  if (type === 'Mini') {
-    log('Kalabalık', 'Behlül protesto ediliyor!');
-    sound(100, 0.4, 'sawtooth', 0.18);
-  }
+  const name = carrierQueue.shift();
+  activeCarriers.add(name);
+  log(name, 'Tabut taşıma görevine geçti.');
+  update();
 }
 
-// Form işlemleri
+function command(raw, name = 'Misafir') {
+  const c = raw.trim().toLocaleUpperCase('tr-TR');
+  if (!c) return;
+
+  if (c === 'KATIL') {
+    if (joined.has(name)) {
+      log(name, 'Zaten cenazeye katıldın.');
+      return;
+    }
+
+    joined.add(name);
+    log(name, 'Cenazeye katıldı.');
+    toast('🕯️', name + ' KATILDI', 'Cenaze kalabalığı büyüyor.');
+  }
+
+  else if (c === 'TASIMA') {
+    addCarrier(name);
+  }
+
+  else if (c === 'DUA') {
+    prayers++;
+    log(name, 'Bihter için dua ediyor.');
+    subtitle(name + ' Bihter için dua ediyor...');
+  }
+
+  else if (c === 'AGLA') {
+    crying++;
+    log(name, 'Ağlayarak cenazeye katıldı.');
+    subtitle('Cenaze kalabalığında hıçkırık sesleri yükseliyor...');
+  }
+
+  else if (c === 'BEHLUL') {
+    protests++;
+    log(name, 'Behlül protesto ediliyor!');
+    subtitle('Kalabalık: BEHLÜL! BEHLÜL!');
+  }
+
+  else if (c === 'EZEL') {
+    log(name, 'Ezel diye bağırıyor!');
+    subtitle('Kalabalık Ezel’i çağırıyor!');
+  }
+
+  else if (c === 'UYAN' || c === 'GEL') {
+    const other = c === 'UYAN' ? 'GEL' : 'UYAN';
+
+    if (votes.UYAN.has(name) || votes.GEL.has(name)) {
+      log(name, 'Daha önce oy kullandın.');
+      return;
+    }
+
+    votes[c].add(name);
+    log(name, c + ' oyu verdi!');
+    subtitle(name + ': ' + c + '!');
+
+    if (votes[c].size > votes[other].size) {
+      $('sceneLine').textContent = c + ' oyları önde!';
+    }
+  }
+
+  else if (c === 'DUR') {
+    log(name, 'Cenaze alayı durduruldu.');
+    movementPaused = true;
+  }
+
+  else if (c === 'YÜRÜ') {
+    movementPaused = false;
+    log(name, 'Cenaze alayı yeniden yürümeye başladı.');
+  }
+
+  else {
+    log(name, 'Komut tanınmadı: ' + raw);
+  }
+
+  update();
+}
+
+function gift(type, name = 'Misafir') {
+  const effects = {
+    Rose: ['🌹', 'GÜL', 'KATIL', 'Cenazeye katıldı.'],
+    Heart: ['❤️', 'KALP', 'DUA', 'Bihter için dua ediyor.'],
+    Gift: ['🎁', 'HEDİYE', 'TASIMA', 'Taşıma sırasına girdi.'],
+    Mini: ['🐱', 'MİNİ HEDİYE', 'BEHLUL', 'Behlül protesto ediliyor.']
+  };
+
+  const item = effects[type] || effects.Rose;
+
+  toast(item[0], name + ' · ' + item[1], item[3]);
+  log(name, type + ' prova hediyesi gönderdi.');
+  command(item[2], name);
+}
+
+// Sohbet
 $('chatForm').addEventListener('submit', e => {
   e.preventDefault();
 
   const value = $('chatInput').value;
   $('chatInput').value = '';
-
   command(value, 'Sen');
 });
 
-// Hızlı komutlar
 document.querySelectorAll('[data-command]').forEach(button => {
   button.addEventListener('click', () => {
     command(button.dataset.command, 'Prova oyuncusu');
   });
 });
 
-// Hediye düğmeleri
 document.querySelectorAll('[data-gift]').forEach(button => {
   button.addEventListener('click', () => {
     gift(button.dataset.gift, 'Prova oyuncusu');
   });
 });
 
-// Ses kontrolü
 $('soundToggle').addEventListener('click', () => {
   soundOn = !soundOn;
+  $('soundToggle').textContent = soundOn ? '🔊 SES AÇIK' : '🔇 SES KAPALI';
 
-  $('soundToggle').textContent = soundOn
-    ? '🔊 SES AÇIK'
-    : '🔇 SES KAPALI';
-
-  if (!soundOn && 'speechSynthesis' in window) {
-    window.speechSynthesis.cancel();
-  }
+  if (!soundOn) speechSynthesis.cancel();
 });
 
-// Maç sayacı
+let movementPaused = false;
+
+// Taşıyıcı değişimi
 setInterval(() => {
-  if (seconds > 0) seconds--;
+  if (activeCarriers.size > 0) {
+    const first = activeCarriers.values().next().value;
+    activeCarriers.delete(first);
+    nextCarrier();
+    update();
+  }
+}, 30000);
 
-  const minutes = String(
-    Math.floor(seconds / 60)
-  ).padStart(2, '0');
-
-  const secs = String(
-    seconds % 60
-  ).padStart(2, '0');
-
-  $('clock').textContent = `${minutes}:${secs}`;
-}, 1000);
-
-// Bihter'in sesli replikleri
-const lines = [
-  'BİHTER: Ölmedim ben! Kurtarın beni!',
-  'BİHTER: Behlül! Beni burada bırakma!',
-  'BİHTER: Sesimi duyan yok mu?',
-  'BİHTER: Tabutu açın! Ne olur!'
-];
-
+// Bihter konuşmaları
 setInterval(() => {
   if (!soundOn) return;
 
   const line = lines[lastLine++ % lines.length];
+  subtitle('BİHTER: ' + line);
+  speak(line);
+}, 18000);
 
-  subtitle(line);
-  speak(line.replace('BİHTER: ', ''));
-}, 22000);
+// Sayaç
+setInterval(() => {
+  if (seconds > 0) seconds--;
+
+  $('clock').textContent =
+    String(Math.floor(seconds / 60)).padStart(2, '0') + ':' +
+    String(seconds % 60).padStart(2, '0');
+}, 1000);
 
 // Animasyon
 const clock = new THREE.Clock();
+let processionX = 0;
 
 function animate() {
   requestAnimationFrame(animate);
 
   const t = clock.getElapsedTime();
 
-  // Tabut hareketi
-  coffin.position.x = Math.sin(t * 0.22) * 0.08;
-  coffin.position.y = Math.sin(t * 2.2) * 0.025;
-  coffin.rotation.z = Math.sin(t * 1.1) * 0.012;
+  if (!movementPaused) {
+    processionX += 0.0018;
+  }
 
-  // Taşıyıcıların adım hareketleri
-  carriers.forEach(p => {
+  coffin.position.x = Math.sin(t * 2) * 0.035;
+  coffin.position.y = Math.sin(t * 2.5) * 0.025;
+  coffin.rotation.z = Math.sin(t * 1.2) * 0.009;
+
+  carriers.forEach((p, i) => {
     const phase = t * 3.2 + p.userData.phase;
 
-    p.userData.limbs.forEach((limb, j) => {
-      limb.rotation.x =
-        Math.sin(phase + (j % 2) * Math.PI) *
-        (j < 2 ? 0.13 : 0.28);
+    p.userData.legs.forEach((leg, j) => {
+      leg.rotation.x = Math.sin(phase + j * Math.PI) * 0.35;
     });
+
+    p.userData.arms.forEach((arm, j) => {
+      arm.rotation.x = -0.25 + Math.sin(phase + j * Math.PI) * 0.12;
+    });
+
+    p.position.y = Math.abs(Math.sin(phase * 2)) * 0.025;
   });
 
-  // Cenaze kalabalığı
   mourners.forEach(p => {
-    const phase = t * 2.3 + p.userData.phase;
+    const phase = t * 2.5 + p.userData.phase;
 
-    p.position.x += Math.sin(phase) * 0.0008;
-
-    p.userData.limbs.forEach((limb, j) => {
-      limb.rotation.x =
-        Math.sin(phase + (j % 2) * Math.PI) * 0.12;
+    p.userData.legs.forEach((leg, j) => {
+      leg.rotation.x = Math.sin(phase + j * Math.PI) * 0.28;
     });
   });
 
-  // Behlül
-  behlul.position.x = 3.6 + Math.sin(t * 0.7) * 0.12;
+  behlul.position.x = 4 + Math.sin(t * 0.5) * 0.15;
 
-  behlul.userData.limbs.forEach((limb, j) => {
-    limb.rotation.x = Math.sin(t * 2 + j) * 0.08;
+  ezel.position.x = Math.min(-7 + t * 0.025, -4.5);
+  ezel.userData.legs.forEach((leg, j) => {
+    leg.rotation.x = Math.sin(t * 3 + j * Math.PI) * 0.35;
   });
 
-  // Ezel'in yaklaşması
-  ezel.position.x = -5.8 + Math.min(t * 0.012, 1.4);
-
-  ezel.userData.limbs.forEach((limb, j) => {
-    limb.rotation.x = Math.sin(t * 2 + j) * 0.12;
-  });
-
-  // Kamera
-  camera.position.x = Math.sin(t * 0.12) * 0.24;
-  camera.lookAt(0, 1.25, 0);
+  camera.position.x = Math.sin(t * 0.15) * 0.3;
+  camera.lookAt(0, 1.1, 0);
 
   renderer.render(scene, camera);
 }
 
 animate();
 
-// Ekran boyutu değişimi
 addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
-
   renderer.setSize(innerWidth, innerHeight);
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 });
+
+update();
