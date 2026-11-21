@@ -1,0 +1,134 @@
+
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#120d12">
+  <meta name="description" content="Bihter'in Son Cenazesi - TikTok canlı yayın oyunu">
+  <title>Bihter'in Son Cenazesi</title>
+</head>
+<body>
+  <div id="app">
+    <canvas id="scene"></canvas>
+
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">✦</span>
+        <div>
+          <b>BIHTER'İN SON CENAZESİ</b>
+          <small>CANLI YAYIN OYUNU</small>
+        </div>
+      </div>
+      <div class="live">
+        <i></i> CANLI PROVA
+        <span id="clock">05:00</span>
+      </div>
+    </header>
+
+    <section class="hud">
+      <div class="score-card uyan">
+        <small>UYAN</small>
+        <strong id="uyanCount">0</strong>
+        <span>EZEL KAÇSIN</span>
+      </div>
+      <div class="score-card gel">
+        <small>GEL</small>
+        <strong id="gelCount">0</strong>
+        <span>EZEL GELSİN</span>
+      </div>
+    </section>
+
+    <div class="scene-caption">
+      <span class="scene-tag">SAHNE 01 · CENAZE ALAYI</span>
+      <strong id="sceneLine">
+        Bihter'in cenazesi saray avlusundan geçiyor...
+      </strong>
+    </div>
+
+    <div class="subtitle" id="subtitle">
+      BİHTER: Ölmedim ben! Kurtarın beni!
+    </div>
+
+    <aside class="gift-toast" id="giftToast">
+      <span class="gift-icon">🌹</span>
+      <div>
+        <b id="giftTitle">HEDİYE BİLDİRİMİ</b>
+        <small id="giftDetail">Hediye etkisi burada görünecek</small>
+      </div>
+    </aside>
+
+    <section class="bottom-panel">
+      <div class="panel-head">
+        <div>
+          <b>CANLI SOHBET</b>
+          <small>Komut yaz veya prova hediyesi gönder</small>
+        </div>
+        <span class="online">● OYUN AÇIK</span>
+      </div>
+
+      <div class="chat-log" id="chatLog">
+        <p>
+          <b>Sistem:</b>
+          Cenaze başladı. KATIL, TASIMA, DUA, UYAN veya GEL yaz.
+        </p>
+      </div>
+
+      <form id="chatForm" class="chat-form">
+        <input
+          id="chatInput"
+          maxlength="60"
+          autocomplete="off"
+          placeholder="Komut yaz: KATIL / TASIMA / UYAN / GEL..."
+        >
+        <button type="submit">GÖNDER</button>
+      </form>
+
+      <div class="quick-actions">
+        <button data-command="KATIL">KATIL</button>
+        <button data-command="TASIMA">TASIMA</button>
+        <button data-command="DUA">DUA</button>
+        <button data-command="UYAN">UYAN</button>
+        <button data-command="GEL">GEL</button>
+      </div>
+
+      <div class="gift-row">
+        <button class="gift-btn" data-gift="Rose">
+          <span>🌹</span> Rose
+        </button>
+        <button class="gift-btn" data-gift="Heart">
+          <span>❤️</span> Kalp
+        </button>
+        <button class="gift-btn" data-gift="Gift">
+          <span>🎁</span> Hediye
+        </button>
+        <button class="gift-btn" data-gift="Mini">
+          <span>🐱</span> Mini
+        </button>
+      </div>
+
+      <div class="footer-note">
+        Hediye düğmeleri yalnızca yerel prova içindir.
+        Gerçek TikTok bağlantısı henüz kurulmadı.
+      </div>
+    </section>
+
+    <section class="right-stats">
+      <div>
+        <b id="attendeeCount">0</b>
+        <small>CENAZEDE</small>
+      </div>
+      <div>
+        <b id="carrierCount">0/4</b>
+        <small>TABUT TAŞIYICI</small>
+      </div>
+    </section>
+
+    <button class="sound-toggle" id="soundToggle">
+      🔊 SES AÇIK
+    </button>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
