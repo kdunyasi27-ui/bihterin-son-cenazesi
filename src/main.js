@@ -1,587 +1,645 @@
-
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import './style.css';
+import { wireAudioUI, startAmbience, voice, giftSound } from './audio.js';
 
 const $ = id => document.getElementById(id);
+const API = 'https://bihter-live-bridge.onrender.com';
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x171019);
-scene.fog = new THREE.Fog(0x171019, 18, 65);
+scene.background = new THREE.Color(0x111018);
+scene.fog = new THREE.Fog(0x111018, 35, 110);
 
-const camera = new THREE.PerspectiveCamera(
-  45,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  120
-);
-camera.position.set(0, 7, 17);
+const camera = new THREE.PerspectiveCamera(48, innerWidth / innerHeight, .1, 180);
+camera.position.set(0, 8, 20);
 
 const renderer = new THREE.WebGLRenderer({
   canvas: $('scene'),
   antialias: true
 });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.dampingFactor = 0.07;
-controls.enablePan = true;
-controls.minDistance = 5;
-controls.maxDistance = 30;
-controls.maxPolarAngle = Math.PI * 0.49;
+controls.minDistance = 6;
+controls.maxDistance = 40;
+controls.maxPolarAngle = Math.PI * .48;
 controls.target.set(0, 1, 0);
-controls.update();
 
-scene.add(new THREE.HemisphereLight(0xcbbbd0, 0x29202a, 2));
+scene.add(new THREE.HemisphereLight(0xcbd0e0, 0x211820, 2));
 
-const moon = new THREE.DirectionalLight(0xffd9ad, 3);
-moon.position.set(-5, 12, 7);
-moon.castShadow = true;
-moon.shadow.mapSize.set(2048, 2048);
-scene.add(moon);
+const sun = new THREE.DirectionalLight(0xffdfc0, 2.8);
+sun.position.set(-8, 16, 8);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+scene.add(sun);
 
-const redLight = new THREE.PointLight(0xa52c43, 25, 20);
-redLight.position.set(4, 4, 1);
-scene.add(redLight);
+const mat = (c, r = .8) => new THREE.MeshStandardMaterial({
+  color: c,
+  roughness: r
+});
 
-function material(color, roughness = 0.8, metalness = 0) {
-  return new THREE.MeshStandardMaterial({
-    color,
-    roughness,
-    metalness
-  });
+const floor = new THREE.Mesh(
+  new THREE.PlaneGeometry(130, 150),
+  mat(0x22232a)
+);
+floor.rotation.x = -Math.PI / 2;
+floor.receiveShadow = true;
+scene.add(floor);
+
+const road = new THREE.Mesh(
+  new THREE.PlaneGeometry(11, 120),
+  mat(0x39363b)
+);
+road.rotation.x = -Math.PI / 2;
+road.position.set(0, .025, -20);
+scene.add(road);
+
+for (const x of [-5.7, 5.7]) {
+  const edge = new THREE.Mesh(
+    new THREE.BoxGeometry(.2, .15, 120),
+    mat(0x796858)
+  );
+  edge.position.set(x, .08, -20);
+  scene.add(edge);
 }
 
-const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(100, 100),
-  material(0x28202a)
-);
-ground.rotation.x = -Math.PI / 2;
-ground.receiveShadow = true;
-scene.add(ground);
-
-// Sahne grupları
-const procession = new THREE.Group();
-scene.add(procession);
-
-// Saray
+// SARAY
 const palace = new THREE.Group();
 scene.add(palace);
 
 const wall = new THREE.Mesh(
-  new THREE.BoxGeometry(22, 5, 0.7),
-  material(0x392b34)
+  new THREE.BoxGeometry(25, 7, 1),
+  mat(0x45343b)
 );
-wall.position.set(0, 2.5, -8);
+wall.position.set(0, 3.5, -53);
 palace.add(wall);
 
-for (let x = -9; x <= 9; x += 2.5) {
+for (let x = -11; x <= 11; x += 3.7) {
   const column = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.23, 0.3, 4.8, 16),
-    material(0x80614e)
+    new THREE.CylinderGeometry(.35, .42, 6.8, 18),
+    mat(0x967658)
   );
-  column.position.set(x, 2.4, -7.5);
+  column.position.set(x, 3.4, -52.4);
   palace.add(column);
 }
 
-// Yol
-const road = new THREE.Mesh(
-  new THREE.PlaneGeometry(12, 45),
-  material(0x393039)
-);
-road.rotation.x = -Math.PI / 2;
-road.position.set(0, 0.015, 8);
-scene.add(road);
+// MEZARLIK KAPISI
+const gate = new THREE.Group();
+scene.add(gate);
 
-// Tabut
-const coffin = new THREE.Group();
-procession.add(coffin);
-
-const wood = material(0x321a20, 0.35);
-const gold = material(0xb58a50, 0.3, 0.35);
-const velvet = material(0x741c31, 0.5);
-
-const base = new THREE.Mesh(
-  new THREE.BoxGeometry(3.2, 0.55, 1.35),
-  wood
-);
-base.position.y = 1.35;
-base.castShadow = true;
-coffin.add(base);
-
-const lid = new THREE.Mesh(
-  new THREE.BoxGeometry(3.3, 0.2, 1.42),
-  gold
-);
-lid.position.y = 1.72;
-coffin.add(lid);
-
-const top = new THREE.Mesh(
-  new THREE.BoxGeometry(3.05, 0.1, 1.2),
-  velvet
-);
-top.position.y = 1.87;
-coffin.add(top);
-
-// Tabut süsleri
-for (let i = -2; i <= 2; i++) {
-  const handle = new THREE.Mesh(
-    new THREE.TorusGeometry(0.15, 0.04, 8, 16),
-    gold
+for (const x of [-5, 5]) {
+  const pillar = new THREE.Mesh(
+    new THREE.BoxGeometry(.5, 5, .5),
+    mat(0x77644d)
   );
-  handle.position.set(i * 0.6, 1.35, 0.72);
-  handle.rotation.x = Math.PI / 2;
-  coffin.add(handle);
+  pillar.position.set(x, 2.5, -83);
+  gate.add(pillar);
 }
 
-// Tabut üzerindeki dekoratif çerçeve
-const portraitFrame = new THREE.Mesh(
-  new THREE.BoxGeometry(0.72, 0.06, 0.88),
+const lintel = new THREE.Mesh(
+  new THREE.BoxGeometry(10, .45, .5),
+  mat(0x927552)
+);
+lintel.position.set(0, 5, -83);
+gate.add(lintel);
+
+// YAĞMUR
+const N = 1200;
+const rainGeometry = new THREE.BufferGeometry();
+const rainPositions = new Float32Array(N * 3);
+
+for (let i = 0; i < N; i++) {
+  rainPositions[i * 3] = (Math.random() - .5) * 45;
+  rainPositions[i * 3 + 1] = Math.random() * 24;
+  rainPositions[i * 3 + 2] = (Math.random() - .5) * 80;
+}
+
+rainGeometry.setAttribute(
+  'position',
+  new THREE.BufferAttribute(rainPositions, 3)
+);
+
+const rain = new THREE.Points(
+  rainGeometry,
+  new THREE.PointsMaterial({
+    color: 0xaabbd0,
+    size: .055,
+    transparent: true,
+    opacity: .55
+  })
+);
+scene.add(rain);
+
+// CENAZE ALAYI
+const parade = new THREE.Group();
+scene.add(parade);
+
+const coffin = new THREE.Group();
+parade.add(coffin);
+
+const wood = mat(0x3b2027, .4);
+const gold = mat(0xb99a65, .3);
+const red = mat(0x6d1e32, .5);
+
+const coffinBox = new THREE.Mesh(
+  new THREE.BoxGeometry(3.2, .62, 1.35),
+  wood
+);
+coffinBox.position.y = 1.55;
+coffinBox.castShadow = true;
+coffin.add(coffinBox);
+
+const lid = new THREE.Mesh(
+  new THREE.BoxGeometry(3.3, .18, 1.43),
   gold
 );
-portraitFrame.position.set(0, 1.98, 0);
-coffin.add(portraitFrame);
+lid.position.y = 1.96;
+coffin.add(lid);
 
-// İnsan modeli
-function person(x, z, color, scale = 1, gender = 'male') {
-  const root = new THREE.Group();
-  root.position.set(x, 0, z);
-  root.scale.setScalar(scale);
+const velvet = new THREE.Mesh(
+  new THREE.BoxGeometry(3.05, .07, 1.2),
+  red
+);
+velvet.position.y = 2.09;
+coffin.add(velvet);
 
-  const coat = material(color);
-  const skin = material(0xc58d70);
-  const pants = material(0x17151a);
-  const hair = material(gender === 'female' ? 0x24151b : 0x171316);
+for (const z of [-.5, .5]) {
+  const bar = new THREE.Mesh(
+    new THREE.CylinderGeometry(.07, .07, 4.4, 12),
+    gold
+  );
+  bar.rotation.z = Math.PI / 2;
+  bar.position.set(0, 1.55, z);
+  parade.add(bar);
+}
+
+// KARAKTER İSİM ETİKETİ
+function label(name) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 128;
+
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = 'rgba(10,7,12,.82)';
+  ctx.roundRect(6, 6, 500, 116, 24);
+  ctx.fill();
+
+  ctx.strokeStyle = '#d9bb83';
+  ctx.lineWidth = 5;
+  ctx.stroke();
+
+  ctx.font = 'bold 42px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#fff0dc';
+  ctx.fillText(String(name).slice(0, 22), 256, 65);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+
+  const sprite = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: texture,
+      depthTest: false
+    })
+  );
+
+  sprite.scale.set(2.1, .52, 1);
+  sprite.position.y = 2.85;
+
+  return sprite;
+}
+
+// İNSAN KARAKTERİ
+function person(name, gender = 'male', avatar = null) {
+  const p = new THREE.Group();
+
+  const coat = mat(gender === 'female' ? 0x392532 : 0x242630);
+  const skin = mat(0xb98268);
+  const pants = mat(0x17171d);
 
   const body = new THREE.Mesh(
-    new THREE.CapsuleGeometry(0.27, 0.65, 5, 10),
+    new THREE.CapsuleGeometry(.29, .72, 5, 10),
     coat
   );
   body.position.y = 1.35;
-  root.add(body);
+  p.add(body);
 
   const head = new THREE.Mesh(
-    new THREE.SphereGeometry(0.22, 20, 16),
+    new THREE.SphereGeometry(.22, 18, 14),
     skin
   );
   head.position.y = 2.05;
-  root.add(head);
+  p.add(head);
 
-  const hairMesh = new THREE.Mesh(
-    new THREE.SphereGeometry(0.225, 16, 12),
-    hair
+  const hair = new THREE.Mesh(
+    new THREE.SphereGeometry(.23, 16, 12),
+    mat(gender === 'female' ? 0x24151b : 0x141318)
   );
-  hairMesh.scale.set(1, 0.55, 1);
-  hairMesh.position.set(0, 2.17, -0.025);
-  root.add(hairMesh);
+  hair.scale.y = .65;
+  hair.position.set(0, 2.17, -.02);
+  p.add(hair);
 
   const arms = [];
   const legs = [];
 
   for (const side of [-1, 1]) {
     const arm = new THREE.Group();
-    arm.position.set(side * 0.3, 1.65, 0);
+    arm.position.set(side * .31, 1.65, 0);
 
-    const upperArm = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.09, 0.42, 4, 8),
+    const armMesh = new THREE.Mesh(
+      new THREE.CapsuleGeometry(.095, .44, 4, 8),
       coat
     );
-    upperArm.position.y = -0.25;
-    arm.add(upperArm);
-    root.add(arm);
+    armMesh.position.y = -.25;
+    arm.add(armMesh);
+    p.add(arm);
     arms.push(arm);
 
     const leg = new THREE.Group();
-    leg.position.set(side * 0.14, 0.95, 0);
+    leg.position.set(side * .14, .92, 0);
 
-    const thigh = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.11, 0.45, 4, 8),
+    const legMesh = new THREE.Mesh(
+      new THREE.CapsuleGeometry(.115, .48, 4, 8),
       pants
     );
-    thigh.position.y = -0.27;
-    leg.add(thigh);
+    legMesh.position.y = -.27;
+    leg.add(legMesh);
 
-    const foot = new THREE.Mesh(
-      new THREE.BoxGeometry(0.18, 0.12, 0.34),
-      pants
+    const shoe = new THREE.Mesh(
+      new THREE.BoxGeometry(.2, .12, .34),
+      mat(0x100f13)
     );
-    foot.position.set(0, -0.53, 0.1);
-    leg.add(foot);
+    shoe.position.set(0, -.54, .1);
+    leg.add(shoe);
 
-    root.add(leg);
+    p.add(leg);
     legs.push(leg);
   }
 
-  root.userData.arms = arms;
-  root.userData.legs = legs;
-  root.userData.phase = Math.random() * 6;
-  root.userData.gender = gender;
+  p.add(label(name));
 
-  root.traverse(object => {
-    if (object.isMesh) {
-      object.castShadow = true;
-      object.receiveShadow = true;
-    }
-  });
-
-  procession.add(root);
-  return root;
-}
-
-// Dört tabut taşıyıcısı
-const carriers = [
-  person(-2, 0.45, 0x25202a, 0.9),
-  person(2, 0.45, 0x25202a, 0.9),
-  person(-2, -0.9, 0x30242c, 0.9),
-  person(2, -0.9, 0x30242c, 0.9)
-];
-
-carriers.forEach(p => {
-  p.rotation.y = Math.PI;
-});
-
-// Kalabalık
-const mourners = [];
-
-for (let i = 0; i < 22; i++) {
-  const p = person(
-    (Math.random() - 0.5) * 12,
-    -3 - Math.random() * 7,
-    i % 2 ? 0x25202a : 0x3b2930,
-    0.65,
-    i % 3 === 0 ? 'female' : 'male'
-  );
-  mourners.push(p);
-}
-
-// Behlül ve Ezel
-const behlul = person(4, 0, 0x11131a, 1.05, 'male');
-const ezel = person(-7, 0, 0x253548, 1.05, 'male');
-
-let votes = {
-  UYAN: new Set(),
-  GEL: new Set()
-};
-
-let joined = new Set();
-let carrierQueue = [];
-let activeCarriers = new Set();
-let crying = 0;
-let prayers = 0;
-let protests = 0;
-let seconds = 300;
-let soundOn = true;
-let speechBusy = false;
-let lastLine = 0;
-let movementPaused = false;
-
-const lines = [
-  'Ölmedim ben! Kurtarın beni!',
-  'Behlül! Beni burada bırakma!',
-  'Sesimi duyan yok mu?',
-  'Tabutu açın! Ne olur!'
-];
-
-function update() {
-  $('uyanCount').textContent = votes.UYAN.size;
-  $('gelCount').textContent = votes.GEL.size;
-  $('attendeeCount').textContent = joined.size;
-  $('carrierCount').textContent = `${activeCarriers.size}/4`;
-}
-
-function log(name, message) {
-  const p = document.createElement('p');
-  const b = document.createElement('b');
-
-  b.textContent = name + ': ';
-  p.append(b, document.createTextNode(message));
-
-  $('chatLog').appendChild(p);
-  $('chatLog').scrollTop = $('chatLog').scrollHeight;
-
-  while ($('chatLog').children.length > 20) {
-    $('chatLog').firstChild.remove();
-  }
-}
-
-function subtitle(message) {
-  $('subtitle').textContent = message;
-}
-
-function speak(message) {
-  if (!soundOn || !('speechSynthesis' in window) || speechBusy) return;
-
-  speechBusy = true;
-
-  const utterance = new SpeechSynthesisUtterance(message);
-  utterance.lang = 'tr-TR';
-  utterance.rate = 0.88;
-  utterance.pitch = 0.95;
-
-  utterance.onend = () => speechBusy = false;
-  utterance.onerror = () => speechBusy = false;
-
-  speechSynthesis.speak(utterance);
-}
-
-function toast(icon, title, detail) {
-  const box = $('giftToast');
-  box.querySelector('.gift-icon').textContent = icon;
-  $('giftTitle').textContent = title;
-  $('giftDetail').textContent = detail;
-
-  box.classList.add('show');
-
-  clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => {
-    box.classList.remove('show');
-  }, 3500);
-}
-
-function addCarrier(name) {
-  if (activeCarriers.size < 4) {
-    activeCarriers.add(name);
-    log(name, 'Tabut taşıyıcılarına katıldı.');
-  } else if (!carrierQueue.includes(name)) {
-    carrierQueue.push(name);
-    log(name, 'Taşıyıcı sırasına alındı.');
-  }
-
-  update();
-}
-
-function nextCarrier() {
-  if (activeCarriers.size >= 4 || carrierQueue.length === 0) return;
-
-  const name = carrierQueue.shift();
-  activeCarriers.add(name);
-  log(name, 'Tabut taşıma görevine geçti.');
-  update();
-}
-
-function command(raw, name = 'Misafir') {
-  const c = raw.trim().toLocaleUpperCase('tr-TR');
-  if (!c) return;
-
-  if (c === 'KATIL') {
-    if (joined.has(name)) {
-      log(name, 'Zaten cenazeye katıldın.');
-      return;
-    }
-
-    joined.add(name);
-    log(name, 'Cenazeye katıldı.');
-    toast('🕯️', name + ' KATILDI', 'Cenaze kalabalığı büyüyor.');
-  }
-
-  else if (c === 'TASIMA') {
-    addCarrier(name);
-  }
-
-  else if (c === 'DUA') {
-    prayers++;
-    log(name, 'Bihter için dua ediyor.');
-    subtitle(name + ' Bihter için dua ediyor...');
-  }
-
-  else if (c === 'AGLA') {
-    crying++;
-    log(name, 'Ağlayarak cenazeye katıldı.');
-    subtitle('Cenaze kalabalığında hıçkırık sesleri yükseliyor...');
-  }
-
-  else if (c === 'BEHLUL') {
-    protests++;
-    log(name, 'Behlül protesto ediliyor!');
-    subtitle('Kalabalık: BEHLÜL! BEHLÜL!');
-  }
-
-  else if (c === 'EZEL') {
-    log(name, 'Ezel diye bağırıyor!');
-    subtitle('Kalabalık Ezel’i çağırıyor!');
-  }
-
-  else if (c === 'UYAN' || c === 'GEL') {
-    const other = c === 'UYAN' ? 'GEL' : 'UYAN';
-
-    if (votes.UYAN.has(name) || votes.GEL.has(name)) {
-      log(name, 'Daha önce oy kullandın.');
-      return;
-    }
-
-    votes[c].add(name);
-    log(name, c + ' oyu verdi!');
-    subtitle(name + ': ' + c + '!');
-
-    if (votes[c].size > votes[other].size) {
-      $('sceneLine').textContent = c + ' oyları önde!';
-    }
-  }
-
-  else if (c === 'DUR') {
-    log(name, 'Cenaze alayı durduruldu.');
-    movementPaused = true;
-  }
-
-  else if (c === 'YÜRÜ') {
-    movementPaused = false;
-    log(name, 'Cenaze alayı yeniden yürümeye başladı.');
-  }
-
-  else if (c === 'KADIN' || c === 'ERKEK') {
-    log(name, c === 'KADIN' ? 'Kadın karakter istedi.' : 'Erkek karakter istedi.');
-    toast('👤', name, 'Karakter tercihi alındı.');
-  }
-
-  else {
-    log(name, 'Komut tanınmadı: ' + raw);
-  }
-
-  update();
-}
-
-function gift(type, name = 'Misafir') {
-  const effects = {
-    Rose: ['🌹', 'GÜL', 'KATIL', 'Cenazeye katıldı.'],
-    Heart: ['❤️', 'KALP', 'DUA', 'Bihter için dua ediyor.'],
-    Gift: ['🎁', 'HEDİYE', 'TASIMA', 'Taşıma sırasına girdi.'],
-    Mini: ['🐱', 'MİNİ HEDİYE', 'BEHLUL', 'Behlül protesto ediliyor.']
+  p.userData = {
+    name,
+    arms,
+    legs,
+    phase: Math.random() * 6.28
   };
 
-  const item = effects[type] || effects.Rose;
+  // TikTok profil fotoğrafı mevcutsa karakterin yüzünde göster
+  if (avatar) {
+    new THREE.TextureLoader().load(
+      avatar,
+      texture => {
+        texture.colorSpace = THREE.SRGBColorSpace;
 
-  toast(item[0], name + ' · ' + item[1], item[3]);
-  log(name, type + ' prova hediyesi gönderdi.');
-  command(item[2], name);
+        const face = new THREE.Mesh(
+          new THREE.CircleGeometry(.18, 24),
+          new THREE.MeshBasicMaterial({
+            map: texture,
+            side: THREE.DoubleSide
+          })
+        );
+
+        face.position.set(0, 2.05, .205);
+        p.add(face);
+      },
+      undefined,
+      () => {}
+    );
+  }
+
+  p.traverse(obj => {
+    if (obj.isMesh) {
+      obj.castShadow = true;
+      obj.receiveShadow = true;
+    }
+  });
+
+  return p;
 }
 
-// Sohbet provası
-$('chatForm').addEventListener('submit', event => {
-  event.preventDefault();
+// TABUT TAŞIYICILARI
+const carriers = [];
 
-  const value = $('chatInput').value;
-  $('chatInput').value = '';
+for (const [x, z] of [
+  [-2, .5],
+  [2, .5],
+  [-2, -.5],
+  [2, -.5]
+]) {
+  const carrier = person('TAŞIYICI');
+  carrier.position.set(x, 0, z);
+  parade.add(carrier);
+  carriers.push(carrier);
+}
 
-  command(value, 'Sen');
-});
+// YAS TUTANLAR
+const crowd = [];
 
+for (let i = 0; i < 20; i++) {
+  const mourner = person(
+    'YAS TUTAN',
+    i % 3 === 0 ? 'female' : 'male'
+  );
+
+  mourner.position.set(
+    (i % 2 ? 1 : -1) * (3.5 + Math.random()),
+    0,
+    -5 - Math.random() * 30
+  );
+
+  mourner.userData.walk = false;
+  scene.add(mourner);
+  crowd.push(mourner);
+}
+
+// OYUNCULAR
+const players = new Map();
+const genderChoice = new Map();
+
+let gameStarted = false;
+let paused = false;
+let elapsed = 0;
+let stage = 0;
+let sound = true;
+
+function say(text, kind = 'female') {
+  if (sound) voice(text, kind);
+}
+
+function log(text) {
+  const activity = $('activity');
+  if (!activity) return;
+
+  const p = document.createElement('p');
+  p.textContent = text;
+  activity.prepend(p);
+
+  while (activity.children.length > 6) {
+    activity.lastChild.remove();
+  }
+}
+
+function update() {
+  if ($('playerCount')) {
+    $('playerCount').textContent = players.size;
+  }
+
+  if ($('stageName')) {
+    $('stageName').textContent = [
+      'SARAY',
+      'ALAY',
+      'MEZARLIK',
+      'DEFİN',
+      'FİNAL'
+    ][stage];
+  }
+}
+
+function join(name, gender, avatar) {
+  if (players.has(name)) return;
+
+  const character = person(name, gender, avatar);
+  const n = players.size;
+
+  character.position.set(
+    (n % 2 ? 1 : -1) * (3.3 + (n % 3) * .6),
+    0,
+    4 + Math.floor(n / 2) * 1.3
+  );
+
+  scene.add(character);
+  players.set(name, character);
+
+  log(`${name} korteje katıldı.`);
+  update();
+}
+
+// TIKTOK YORUM KOMUTLARI
+function command(text, name = 'Misafir', avatar = null) {
+  const c = String(text || '').trim().toLocaleUpperCase('tr-TR');
+
+  if (c === 'KADIN' || c === 'ERKEK') {
+    genderChoice.set(name, c === 'KADIN' ? 'female' : 'male');
+    log(`${name}: ${c} karakter seçti.`);
+    return;
+  }
+
+  if (c === 'KATIL') {
+    join(name, genderChoice.get(name) || 'male', avatar);
+    return;
+  }
+
+  if (c === 'TASIMA') {
+    if (!players.has(name)) {
+      join(name, genderChoice.get(name) || 'male', avatar);
+    }
+    log(`${name} taşıma isteği gönderdi.`);
+    return;
+  }
+
+  if (c === 'DUA' || c === 'AGLA') {
+    log(`${name}: ${c}`);
+    return;
+  }
+
+  if (c === 'UYAN') {
+    say('Bihter uyan!', 'bihter');
+    log(`${name}: UYAN`);
+    return;
+  }
+
+  if (c === 'GEL') {
+    say('Herkes cenazeye gelsin.', 'male');
+    return;
+  }
+
+  if (c === 'DUR') {
+    paused = true;
+    log('Kortej durdu.');
+    return;
+  }
+
+  if (c === 'YURU' || c === 'YÜRÜ') {
+    paused = false;
+    log('Kortej yürümeye başladı.');
+    return;
+  }
+
+  if (c === 'BEHLUL' || c === 'BEHLÜL' || c === 'EZEL') {
+    say(c, c.startsWith('EZEL') ? 'ezel' : 'behlul');
+    log(`${name}: ${c}`);
+  }
+}
+
+// TIKTOK SUNUCU BAĞLANTISI
+function connect() {
+  fetch(`${API}/api/status`)
+    .then(r => r.json())
+    .then(status => {
+      if ($('liveStatus')) {
+        $('liveStatus').textContent = status.connected
+          ? 'TIKTOK BAĞLI'
+          : 'SUNUCU AÇIK · YAYIN BEKLENİYOR';
+      }
+    })
+    .catch(() => {
+      if ($('liveStatus')) {
+        $('liveStatus').textContent = 'SUNUCUYA ULAŞILAMIYOR';
+      }
+    });
+
+  const events = new EventSource(`${API}/api/stream`);
+
+  events.onmessage = event => {
+    try {
+      const data = JSON.parse(event.data);
+
+      if (data.type === 'comment') {
+        command(data.comment, data.user, data.avatar);
+      }
+
+      if (data.type === 'gift') {
+        log(`${data.user} ${data.gift} gönderdi`);
+        giftSound();
+        say(`${data.user} hediye gönderdi`, 'male');
+      }
+    } catch (error) {
+      console.warn(error);
+    }
+  };
+
+  events.onerror = () => {
+    if ($('liveStatus')) {
+      $('liveStatus').textContent = 'BAĞLANTI YENİDEN DENENİYOR';
+    }
+  };
+}
+
+connect();
+wireAudioUI();
+
+// PROVA KOMUTLARI
 document.querySelectorAll('[data-command]').forEach(button => {
   button.addEventListener('click', () => {
-    command(button.dataset.command, 'Prova oyuncusu');
+    command(button.dataset.command, 'PROVA');
   });
 });
 
-document.querySelectorAll('[data-gift]').forEach(button => {
-  button.addEventListener('click', () => {
-    gift(button.dataset.gift, 'Prova oyuncusu');
-  });
+// OYUNU BAŞLAT
+$('startGame')?.addEventListener('click', () => {
+  gameStarted = true;
+  paused = false;
+  elapsed = 0;
+
+  log('PROVA BİTTİ · OYUN BAŞLADI');
+
+  startAmbience();
+  say('Bihter’in son yolculuğu başlıyor.', 'male');
 });
 
-$('soundToggle').addEventListener('click', () => {
-  soundOn = !soundOn;
-  $('soundToggle').textContent = soundOn ? '🔊 SES AÇIK' : '🔇 SES KAPALI';
+// SES DÜĞMESİNİN kontrolü audio.js dosyasındadır.
+// Buraya ikinci bir ses düğmesi olayı eklemeyin.
 
-  if (!soundOn && 'speechSynthesis' in window) {
-    speechSynthesis.cancel();
-    speechBusy = false;
-  }
-});
-
-// Taşıyıcı sırası
-setInterval(() => {
-  if (activeCarriers.size > 0) {
-    const first = activeCarriers.values().next().value;
-    activeCarriers.delete(first);
-    nextCarrier();
-    update();
-  }
-}, 30000);
-
-// Bihter konuşmaları
-setInterval(() => {
-  if (!soundOn) return;
-
-  const line = lines[lastLine++ % lines.length];
-  subtitle('BİHTER: ' + line);
-  speak(line);
-}, 18000);
-
-// Sayaç
-setInterval(() => {
-  if (seconds > 0) seconds--;
-
-  $('clock').textContent =
-    String(Math.floor(seconds / 60)).padStart(2, '0') + ':' +
-    String(seconds % 60).padStart(2, '0');
-}, 1000);
-
-// Animasyon
 const clock = new THREE.Clock();
 
 function animate() {
   requestAnimationFrame(animate);
 
-  const t = clock.getElapsedTime();
+  const dt = Math.min(clock.getDelta(), .05);
+  const t = clock.elapsedTime;
 
-  if (!movementPaused) {
-    procession.position.x = Math.sin(t * 0.16) * 0.45;
-    procession.position.z = Math.sin(t * 0.10) * 0.25;
+  // YAĞMUR HAREKETİ
+  const rainAttribute = rain.geometry.attributes.position;
+
+  for (let i = 0; i < N; i++) {
+    rainAttribute.array[i * 3 + 1] -= dt * 17;
+
+    if (rainAttribute.array[i * 3 + 1] < 0) {
+      rainAttribute.array[i * 3 + 1] = 23;
+    }
   }
 
-  coffin.position.y = Math.sin(t * 2.5) * 0.025;
-  coffin.rotation.z = Math.sin(t * 1.2) * 0.009;
+  rainAttribute.needsUpdate = true;
 
-  carriers.forEach((p, i) => {
-    const phase = t * 3.2 + p.userData.phase;
+  // CENAZE ALAYININ İLERLEMESİ
+  if (gameStarted && !paused) {
+    elapsed += dt;
 
-    p.userData.legs.forEach((leg, j) => {
-      leg.rotation.x = Math.sin(phase + j * Math.PI) * 0.35;
+    parade.position.z = -Math.min(elapsed * .72, 72);
+
+    if (elapsed < 16) {
+      stage = 1;
+    } else if (elapsed < 48) {
+      stage = 2;
+    } else if (elapsed < 65) {
+      stage = 3;
+    } else {
+      stage = 4;
+    }
+
+    camera.position.z = 20 + parade.position.z * .32;
+    controls.target.z = parade.position.z * .32;
+  }
+
+  // KARAKTER YÜRÜYÜŞ ANİMASYONU
+  [
+    ...carriers,
+    ...crowd,
+    ...players.values()
+  ].forEach(character => {
+    const data = character.userData;
+    const phase = t * 5 + data.phase;
+
+    data.legs.forEach((leg, i) => {
+      leg.rotation.x =
+        gameStarted && !paused && data.walk !== false
+          ? Math.sin(phase + i * Math.PI) * .48
+          : 0;
     });
 
-    p.userData.arms.forEach((arm, j) => {
-      arm.rotation.x = -0.25 + Math.sin(phase + j * Math.PI) * 0.12;
+    data.arms.forEach((arm, i) => {
+      arm.rotation.x =
+        gameStarted && !paused
+          ? -.12 + Math.sin(phase + i * Math.PI) * .2
+          : 0;
     });
 
-    p.position.y = Math.abs(Math.sin(phase * 2)) * 0.025;
+    if (gameStarted && !paused && players.has(data.name)) {
+      character.position.z -= dt * .72;
+    }
   });
 
-  mourners.forEach(p => {
-    const phase = t * 2.5 + p.userData.phase;
+  // TABUT HAFİFÇE HAREKET EDER
+  coffin.position.y = 1.55 + Math.sin(t * 5) * .025;
+  coffin.rotation.z = Math.sin(t * 2) * .008;
 
-    p.userData.legs.forEach((leg, j) => {
-      leg.rotation.x = Math.sin(phase + j * Math.PI) * 0.28;
-    });
-
-    p.userData.arms.forEach((arm, j) => {
-      arm.rotation.x = Math.sin(phase * 0.5 + j) * 0.08;
-    });
+  // SAHNE İLERLEME GÖSTERGESİ
+  document.querySelectorAll('.route-stage').forEach((element, i) => {
+    element.classList.toggle('active', i <= stage);
   });
 
-  behlul.position.x = 4 + Math.sin(t * 0.5) * 0.15;
+  if ($('routeProgress')) {
+    $('routeProgress').style.width = (stage * 25) + '%';
+  }
 
-  ezel.position.x = Math.min(-7 + t * 0.025, -4.5);
-  ezel.userData.legs.forEach((leg, j) => {
-    leg.rotation.x = Math.sin(t * 3 + j * Math.PI) * 0.35;
-  });
-
+  update();
   controls.update();
   renderer.render(scene, camera);
 }
 
 animate();
 
-// Ekran boyutu
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
+// EKRAN BOYUTU DEĞİŞİNCE
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
 
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 });
-
-update();
