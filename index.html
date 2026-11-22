@@ -1,15 +1,16 @@
+
 <!doctype html>
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#100b10">
+  <meta name="description" content="Bihter'in Son Cenazesi - 3D TikTok LIVE oyunu">
   <title>BIHTER'İN SON CENAZESİ</title>
 </head>
 
 <body>
   <div id="app">
-
     <canvas id="scene"></canvas>
 
     <header class="topbar">
@@ -34,22 +35,18 @@
           <span>01</span>
           <small>SARAY</small>
         </div>
-
         <div class="route-stage">
           <span>02</span>
           <small>ALAY</small>
         </div>
-
         <div class="route-stage">
           <span>03</span>
           <small>MEZARLIK</small>
         </div>
-
         <div class="route-stage">
           <span>04</span>
           <small>DEFİN</small>
         </div>
-
         <div class="route-stage">
           <span>05</span>
           <small>FİNAL</small>
@@ -59,7 +56,7 @@
 
     <div class="hud">
       <div class="score-card">
-        <small>OYUNCU</small>
+        <small>KATILIMCI</small>
         <strong id="playerCount">0</strong>
       </div>
 
@@ -70,16 +67,16 @@
     </div>
 
     <div class="scene-caption">
-      Gerçek yol üzerinde cenaze korteji
+      Bihter'in son yolculuğu
     </div>
 
     <aside class="activity" id="activity">
-      <p>Prova bekleniyor…</p>
+      <p>Canlı yayın bağlantısı bekleniyor...</p>
     </aside>
 
     <div class="bottom">
       <button id="startGame">
-        PROVA BİTTİ · OYUNU BAŞLAT
+        OYUNU BAŞLAT
       </button>
 
       <button id="soundToggle">
@@ -91,7 +88,7 @@
       <summary>SES MASASI</summary>
 
       <label>
-        Genel
+        Genel ses
         <input id="masterVolume" type="range" min="0" max="100" value="80">
       </label>
 
@@ -106,7 +103,7 @@
       </label>
 
       <label>
-        Adım
+        Ayak sesleri
         <input data-volume="steps" type="range" min="0" max="100" value="18">
       </label>
 
@@ -122,15 +119,8 @@
     </details>
 
     <div class="commands">
-      KADIN / ERKEK → KATIL · TASIMA · DUA · AGLA · YURU
+      KADIN / ERKEK → KATIL · TASIMA · DUA · AGLA · UYAN · BEHLUL · EZEL · DUR · YURU
     </div>
-
-    <section hidden>
-      <button data-command="KATIL">KATIL</button>
-      <button data-command="KADIN">KADIN</button>
-      <button data-command="ERKEK">ERKEK</button>
-    </section>
-
   </div>
 
   <script type="module" src="/src/main.js"></script>
