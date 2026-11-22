@@ -1,7 +1,14 @@
 
-let ctx, master, bus = {}, running = false, timers = [];
+let audioContext;
+let master;
+let channels = {};
+let running = false;
+let musicTimer = null;
+let stepTimer = null;
+let creakTimer = null;
+let musicIndex = 0;
 
-const levels = {
+const volumes = {
   rain: 0.24,
   wind: 0.13,
   steps: 0.18,
@@ -9,199 +16,309 @@ const levels = {
   music: 0.10
 };
 
-function init() {
-  if (!ctx) {
-    ctx = new (window.AudioContext || window.webkitAudioContext)();
-    master = ctx.createGain();
-    master.gain.value = 0.8;
-    master.connect(ctx.destination);
+const melody = [
+  220, 196, 174.61, 196,
+  164.81, 174.61, 196, 146.83
+];
 
-    Object.keys(levels).forEach(k => {
-      bus[k] = ctx.createGain();
-      bus[k].gain.value = levels[k];
-      bus[k].connect(master);
-    });
+function initAudio() {
+  if (audioContext) {
+    if (audioContext.state === 'suspended') {
+      audioContext.resume();
+    }
+    return;
   }
 
-  if (ctx.state === 'suspended') ctx.resume();
+  const AudioContextClass =
+    window.AudioContext || window.webkitAudioContext;
+
+  if (!AudioContextClass) return;
+
+  audioContext = new AudioContextClass();
+
+  master = audioContext.createGain();
+  master.gain.value = 0.8;
+  master.connect(audioContext.destination);
+
+  for (const name of Object.keys(volumes)) {
+    const gain = audioContext.createGain();
+    gain.gain.value = volumes[name];
+    gain.connect(master);
+    channels[name] = gain;
+  }
 }
 
-function noise(channel, filter, hz, volume) {
-  const buffer = ctx.createBuffer(
-    1, ctx.sampleRate * 2, ctx.sampleRate
+function tone(frequency, duration, channel, type = 'sine', volume = 0.2) {
+  if (!audioContext || !channels[channel]) return;
+
+  const oscillator = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(
+    frequency,
+    audioContext.currentTime
+  );
+
+  gain.gain.setValueAtTime(
+    0.0001,
+    audioContext.currentTime
+  );
+
+  gain.gain.exponentialRampToValueAtTime(
+    Math.max(volume, 0.001),
+    audioContext.currentTime + 0.04
+  );
+
+  gain.gain.exponentialRampToValueAtTime(
+    0.0001,
+    audioContext.currentTime + duration
+  );
+
+  oscillator.connect(gain);
+  gain.connect(channels[channel]);
+
+  oscillator.start();
+  oscillator.stop(audioContext.currentTime + duration + 0.05);
+}
+
+function noise(channel, volume, duration = 2, filterFrequency = 1000) {
+  if (!audioContext || !channels[channel]) return;
+
+  const length = Math.floor(audioContext.sampleRate * duration);
+  const buffer = audioContext.createBuffer(
+    1,
+    length,
+    audioContext.sampleRate
   );
 
   const data = buffer.getChannelData(0);
 
-  for (let i = 0; i < data.length; i++) {
+  for (let i = 0; i < length; i++) {
     data[i] = Math.random() * 2 - 1;
   }
 
-  const source = ctx.createBufferSource();
-  const lowpass = ctx.createBiquadFilter();
-  const gain = ctx.createGain();
+  const source = audioContext.createBufferSource();
+  const filter = audioContext.createBiquadFilter();
+  const gain = audioContext.createGain();
 
   source.buffer = buffer;
-  source.loop = true;
-  lowpass.type = filter;
-  lowpass.frequency.value = hz;
+  filter.type = 'lowpass';
+  filter.frequency.value = filterFrequency;
+
   gain.gain.value = volume;
 
-  source.connect(lowpass);
-  lowpass.connect(gain);
-  gain.connect(bus[channel]);
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(channels[channel]);
+
   source.start();
 }
 
-function beep(channel, frequency, duration, wave = 'sine', volume = 0.1, end = null) {
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  const now = ctx.currentTime;
-
-  osc.type = wave;
-  osc.frequency.setValueAtTime(frequency, now);
-
-  if (end) {
-    osc.frequency.exponentialRampToValueAtTime(end, now + duration);
-  }
-
-  gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.exponentialRampToValueAtTime(volume, now + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-
-  osc.connect(gain);
-  gain.connect(bus[channel]);
-
-  osc.start();
-  osc.stop(now + duration + 0.03);
+function rainSound() {
+  noise('rain', 0.12, 3, 1800);
 }
 
-export function startAmbience() {
-  init();
-  if (running) return;
+function windSound() {
+  noise('wind', 0.07, 4, 400);
+}
+
+function footstepSound() {
+  tone(65 + Math.random() * 18, 0.12, 'steps', 'triangle', 0.18);
+}
+
+function coffinSound() {
+  tone(90, 0.35, 'coffin', 'sawtooth', 0.08);
+  tone(125, 0.22, 'coffin', 'triangle', 0.06);
+}
+
+function playMusicNote() {
+  if (!audioContext || !running) return;
+
+  const frequency = melody[musicIndex % melody.length];
+  musicIndex++;
+
+  tone(frequency, 2.2, 'music', 'sine', 0.15);
+  tone(frequency * 1.5, 1.5, 'music', 'triangle', 0.035);
+}
+
+function startAmbience() {
+  initAudio();
+  if (!audioContext || running) return;
 
   running = true;
 
-  noise('rain', 'lowpass', 1500, 0.3);
-  noise('wind', 'lowpass', 380, 0.14);
+  if (audioContext.state === 'suspended') {
+    audioContext.resume();
+  }
 
-  [110, 164.8, 220].forEach(freq => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+  rainSound();
+  windSound();
 
-    osc.type = 'sine';
-    osc.frequency.value = freq;
-    gain.gain.value = 0.014;
+  musicTimer = setInterval(playMusicNote, 1800);
+  stepTimer = setInterval(footstepSound, 550);
+  creakTimer = setInterval(() => {
+    if (Math.random() > 0.65) coffinSound();
+  }, 2800);
 
-    osc.connect(gain);
-    gain.connect(bus.music);
-    osc.start();
-  });
+  // Ortam seslerini aralıklarla yenile
+  setInterval(() => {
+    if (running) rainSound();
+  }, 2400);
 
-  const step = () => {
-    if (!running) return;
-
-    beep('steps', 85, 0.1, 'triangle', 0.12, 52);
-
-    timers.push(setTimeout(() => {
-      beep('steps', 65, 0.1, 'triangle', 0.1, 45);
-    }, 350));
-
-    timers.push(setTimeout(step, 1700));
-  };
-
-  const creak = () => {
-    if (!running) return;
-
-    beep('coffin', 230, 0.35, 'sawtooth', 0.035, 90);
-    timers.push(setTimeout(creak, 8000));
-  };
-
-  timers.push(setTimeout(step, 500));
-  timers.push(setTimeout(creak, 2500));
+  setInterval(() => {
+    if (running) windSound();
+  }, 3500);
 }
 
-export function stopAmbience() {
+function stopAmbience() {
   running = false;
-  timers.forEach(clearTimeout);
-  timers = [];
-}
 
-export function setVolume(channel, value) {
-  init();
+  clearInterval(musicTimer);
+  clearInterval(stepTimer);
+  clearInterval(creakTimer);
 
-  if (bus[channel]) {
-    bus[channel].gain.value = Math.max(0, Math.min(1, value));
+  musicTimer = null;
+  stepTimer = null;
+  creakTimer = null;
+
+  if (audioContext) {
+    Object.values(channels).forEach(channel => {
+      channel.gain.setTargetAtTime(
+        0,
+        audioContext.currentTime,
+        0.08
+      );
+    });
   }
 }
 
-export function giftSound() {
-  init();
-  beep('music', 880, 0.16, 'sine', 0.18);
+function resumeAmbience() {
+  initAudio();
+  if (!audioContext) return;
 
-  setTimeout(() => {
-    beep('music', 1175, 0.22, 'sine', 0.14);
-  }, 100);
+  Object.entries(volumes).forEach(([name, value]) => {
+    channels[name].gain.setTargetAtTime(
+      value,
+      audioContext.currentTime,
+      0.1
+    );
+  });
+
+  running = false;
+  startAmbience();
 }
 
-export function voice(text, kind = 'female') {
-  init();
-
+// KONUŞMA SESLERİ
+function voice(message, character = 'female') {
   if (!('speechSynthesis' in window)) return;
 
-  const utterance = new SpeechSynthesisUtterance(text);
+  initAudio();
+
+  const utterance = new SpeechSynthesisUtterance(message);
   utterance.lang = 'tr-TR';
 
-  utterance.rate = kind === 'bihter' ? 0.82 : 0.94;
+  const voices = speechSynthesis.getVoices();
+  const turkish = voices.find(v =>
+    v.lang.toLowerCase().startsWith('tr')
+  );
 
-  utterance.pitch =
-    kind === 'female' ? 1.35 :
-    kind === 'behlul' ? 0.82 :
-    kind === 'ezel' ? 0.72 :
-    kind === 'bihter' ? 0.92 : 1;
+  if (turkish) utterance.voice = turkish;
 
-  const turkishVoice = speechSynthesis
-    .getVoices()
-    .find(v => v.lang?.toLowerCase().startsWith('tr'));
+  const settings = {
+    female: { pitch: 1.15, rate: 0.88 },
+    bihter: { pitch: 1.35, rate: 0.72 },
+    behlul: { pitch: 0.82, rate: 0.91 },
+    ezel: { pitch: 0.72, rate: 0.86 },
+    male: { pitch: 0.85, rate: 0.9 }
+  };
 
-  if (turkishVoice) utterance.voice = turkishVoice;
+  const setting = settings[character] || settings.female;
 
+  utterance.pitch = setting.pitch;
+  utterance.rate = setting.rate;
+  utterance.volume = 1;
+
+  speechSynthesis.cancel();
   speechSynthesis.speak(utterance);
 }
 
-export function wireAudioUI() {
-  document.addEventListener(
-    'pointerdown',
-    () => startAmbience(),
-    { once: true }
-  );
+// YAPAY AĞLAMA EFEKTİ
+function cryingSound() {
+  if (!audioContext) initAudio();
 
-  const button = document.getElementById('soundToggle');
+  tone(440, 0.35, 'music', 'sine', 0.08);
 
-  if (button) {
-    button.addEventListener('click', () => {
+  setTimeout(() => {
+    tone(390, 0.45, 'music', 'sine', 0.07);
+  }, 300);
+
+  setTimeout(() => {
+    tone(330, 0.55, 'music', 'sine', 0.06);
+  }, 650);
+}
+
+// HEDİYE SESİ
+function giftSound() {
+  initAudio();
+
+  tone(660, 0.18, 'music', 'sine', 0.15);
+
+  setTimeout(() => {
+    tone(880, 0.3, 'music', 'sine', 0.15);
+  }, 160);
+
+  setTimeout(() => {
+    tone(1100, 0.4, 'music', 'sine', 0.12);
+  }, 330);
+}
+
+// SES DÜĞMELERİ VE KAYDIRICILAR
+function wireAudioUI() {
+  const toggle = document.getElementById('soundToggle');
+
+  if (toggle) {
+    toggle.textContent = running ? 'SESİ KAPAT' : 'SESİ AÇ';
+
+    toggle.addEventListener('click', () => {
       if (running) {
         stopAmbience();
-        button.textContent = 'SESİ AÇ';
+        toggle.textContent = 'SESİ AÇ';
       } else {
-        startAmbience();
-        button.textContent = 'SES AÇIK';
+        resumeAmbience();
+        toggle.textContent = 'SESİ KAPAT';
       }
     });
   }
-
-  document.querySelectorAll('[data-volume]').forEach(input => {
-    input.addEventListener('input', () => {
-      setVolume(input.dataset.volume, input.value / 100);
-    });
-  });
 
   const masterSlider = document.getElementById('masterVolume');
 
   if (masterSlider) {
     masterSlider.addEventListener('input', () => {
-      init();
-      master.gain.value = masterSlider.value / 100;
+      initAudio();
+      master.gain.value = Number(masterSlider.value) / 100;
     });
   }
+
+  document.querySelectorAll('[data-volume]').forEach(slider => {
+    slider.addEventListener('input', () => {
+      const name = slider.dataset.volume;
+      const value = Number(slider.value) / 100;
+
+      volumes[name] = value;
+
+      if (channels[name]) {
+        channels[name].gain.value = value;
+      }
+    });
+  });
 }
+
+export {
+  wireAudioUI,
+  startAmbience,
+  stopAmbience,
+  voice,
+  giftSound,
+  cryingSound
+};
